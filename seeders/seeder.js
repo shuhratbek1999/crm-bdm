@@ -16,14 +16,6 @@ module.exports = {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-        {
-          full_name: "Jane Smith",
-          phone: "+998901234568",
-          password: passwordHash,
-          role: "user",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
       ],
       {}
     );
