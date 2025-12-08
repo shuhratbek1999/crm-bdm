@@ -51,7 +51,7 @@ module.exports = {
       attendance_date: {
         type: Sequelize.DATEONLY,
         allowNull: false,
-        defaultValue: Sequelize.literal("(CURDATE())"),
+        defaultValue: Sequelize.literal("CURDATE()"),
       },
 
       createdAt: {
