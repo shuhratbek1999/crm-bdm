@@ -61,7 +61,7 @@ const getAllCourses = async (req, res) => {
         include: [
           [
             sequelize.literal(
-              `(SELECT COUNT(*) FROM groups Groups WHERE Groups.course_id = Courses.id AND Groups.status = 'active')`
+              `(SELECT COUNT(*) FROM groups Groups WHERE Groups.course_id = Course.id AND Groups.status = 'active')`
             ),
             "active_groups_count",
           ],
