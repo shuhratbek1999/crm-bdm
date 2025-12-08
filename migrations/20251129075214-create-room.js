@@ -57,11 +57,11 @@ module.exports = {
       },
     });
 
-    await queryInterface.addIndex("Rooms", ["status"]);
-    await queryInterface.addIndex("Rooms", ["floor"]);
+    await queryInterface.addIndex("Room", ["status"]);
+    await queryInterface.addIndex("Room", ["floor"]);
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Rooms");
+    await queryInterface.dropTable("Room");
   },
 };
