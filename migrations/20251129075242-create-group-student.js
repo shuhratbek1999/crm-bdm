@@ -32,7 +32,7 @@ module.exports = {
       },
       join_date: {
         type: Sequelize.DATEONLY,
-        defaultValue: Sequelize.literal("CURDATE"),
+        defaultValue: Sequelize.literal("(CURDATE())"),
       },
       status: {
         type: Sequelize.ENUM("active", "inactive", "completed"),
