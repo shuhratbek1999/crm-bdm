@@ -313,7 +313,7 @@ exports.getStudentById = async (req, res) => {
           [
             literal(`
               COALESCE(
-                (SELECT SUM(amount) FROM payments 
+                (SELECT SUM(amount) FROM Payments as payments 
                  WHERE payments.student_id = Student.id 
                  AND payments.status = 'completed'), 0
               )
@@ -323,7 +323,7 @@ exports.getStudentById = async (req, res) => {
           [
             literal(`
               COALESCE(
-                (SELECT SUM(price) FROM groups 
+                (SELECT SUM(price) FROM Groups as groups 
                  INNER JOIN group_students ON groups.id = group_students.group_id
                  WHERE group_students.student_id = Student.id), 0
               )
@@ -565,7 +565,7 @@ exports.getStudents = async (req, res) => {
           [
             literal(`
               COALESCE(
-                (SELECT SUM(amount) FROM payments 
+                (SELECT SUM(amount) FROM Payments as payments 
                  WHERE payments.student_id = Student.id 
                  AND payments.status = 'completed'), 0
               )
@@ -575,7 +575,7 @@ exports.getStudents = async (req, res) => {
           [
             literal(`
               COALESCE(
-                (SELECT SUM(price) FROM groups 
+                (SELECT SUM(price) FROM Groups as groups 
                  INNER JOIN group_students ON groups.id = group_students.group_id
                  WHERE group_students.student_id = Student.id), 0
               )
@@ -681,12 +681,12 @@ exports.getActiveStudents = async (req, res) => {
           [
             literal(`
               COALESCE(
-                (SELECT SUM(amount) FROM payments 
+                (SELECT SUM(amount) FROM Payments as payments 
                  WHERE payments.student_id = Student.id 
                  AND payments.status = 'completed'), 0
               ) - 
               COALESCE(
-                (SELECT SUM(groups.price) FROM groups 
+                (SELECT SUM(groups.price) FROM Groups as groups 
                  INNER JOIN group_students ON groups.id = group_students.group_id
                  WHERE group_students.student_id = Student.id), 0
               )
@@ -705,7 +705,7 @@ exports.getActiveStudents = async (req, res) => {
           [
             literal(`
               COALESCE(
-                (SELECT SUM(amount) FROM payments 
+                (SELECT SUM(amount) FROM Payments as payments 
                  WHERE payments.student_id = Student.id 
                  AND payments.status = 'completed'), 0
               )
