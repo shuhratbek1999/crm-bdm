@@ -371,7 +371,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "Group",
-      tableName: "Groups",
+      tableName: "groups",
       underscored: true,
       timestamps: true,
       createdAt: "created_at",

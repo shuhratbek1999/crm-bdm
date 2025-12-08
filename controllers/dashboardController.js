@@ -219,7 +219,7 @@ module.exports = {
             (SELECT COUNT(DISTINCT gs.student_id) 
              FROM groups g
              LEFT JOIN group_students gs ON g.id = gs.group_id
-             WHERE g.course_id = Course.id AND g.status = 'active')
+             WHERE g.course_id = Courses.id AND g.status = 'active')
           `),
             "enrollment",
           ],
@@ -227,7 +227,7 @@ module.exports = {
             Sequelize.literal(`
             (SELECT COUNT(DISTINCT g.id) 
              FROM groups g
-             WHERE g.course_id = Course.id AND g.status = 'active')
+             WHERE g.course_id = Courses.id AND g.status = 'active')
           `),
             "active_groups",
           ],
@@ -305,7 +305,7 @@ module.exports = {
             (SELECT COUNT(DISTINCT gs.student_id) 
              FROM groups g
              LEFT JOIN group_students gs ON g.id = gs.group_id
-             WHERE g.course_id = Course.id)
+             WHERE g.course_id = Courses.id)
           `),
             "total_students",
           ],

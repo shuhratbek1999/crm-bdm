@@ -59,7 +59,7 @@ const getAllRooms = async (req, res) => {
         include: [
           [
             literal(
-              `(SELECT COUNT(*) FROM \`Groups\` WHERE \`Groups\`.\`room_id\` = \`Room\`.\`id\` AND \`Groups\`.\`status\` = 'active')`
+              `(SELECT COUNT(*) FROM groups Groups WHERE Groups.room_id = Room.id AND Groups.status = 'active')`
             ),
             "active_groups_count",
           ],

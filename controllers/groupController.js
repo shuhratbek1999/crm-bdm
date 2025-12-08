@@ -145,7 +145,7 @@ const getAllGroups = async (req, res) => {
             sequelize.literal(`(
               SELECT COUNT(*) 
               FROM Lessons 
-              WHERE Lessons.group_id = Group.id
+              WHERE Lessons.group_id = groups.id
               AND Lessons.date >= CURDATE()
             )`),
             "upcoming_lessons",
@@ -154,7 +154,7 @@ const getAllGroups = async (req, res) => {
             sequelize.literal(`(
               SELECT COUNT(*) 
               FROM group_students 
-              WHERE group_students.group_id = Group.id
+              WHERE group_students.group_id = groups.id
               AND group_students.status = 'active'
             )`),
             "active_students_count",
@@ -319,7 +319,7 @@ const getAllGroupsTeacher = async (req, res) => {
             sequelize.literal(`(
               SELECT COUNT(*) 
               FROM Lessons 
-              WHERE Lessons.group_id = Group.id
+              WHERE Lessons.group_id = groups.id
               AND Lessons.date >= CURDATE()
             )`),
             "upcoming_lessons",
@@ -328,7 +328,7 @@ const getAllGroupsTeacher = async (req, res) => {
             sequelize.literal(`(
               SELECT COUNT(*) 
               FROM group_students 
-              WHERE group_students.group_id = Group.id
+              WHERE group_students.group_id = groups.id
               AND group_students.status = 'active'
             )`),
             "active_students_count",
@@ -477,7 +477,7 @@ const getGroupById = async (req, res) => {
             sequelize.literal(`(
               SELECT COUNT(*) 
               FROM Lessons 
-              WHERE Lessons.group_id = Group.id
+              WHERE Lessons.group_id = groups.id
               AND Lessons.status = 'scheduled'
               AND Lessons.date >= CURDATE()
             )`),
@@ -487,7 +487,7 @@ const getGroupById = async (req, res) => {
             sequelize.literal(`(
               SELECT COUNT(*) 
               FROM Lessons 
-              WHERE Lessons.group_id = Group.id
+              WHERE Lessons.group_id = groups.id
               AND Lessons.status = 'completed'
             )`),
             "completed_lessons_count",
@@ -497,7 +497,7 @@ const getGroupById = async (req, res) => {
               SELECT AVG(Attendances.status = 'present') * 100
               FROM Lessons 
               LEFT JOIN Attendances ON Lessons.id = Attendances.lesson_id
-              WHERE Lessons.group_id = Group.id
+              WHERE Lessons.group_id = groups.id
               AND Lessons.status = 'completed'
             )`),
             "attendance_rate",
@@ -648,7 +648,7 @@ const getGroupStats = async (req, res) => {
           ELSE 0 
         END as overall_fill_rate,
         COUNT(CASE WHEN schedule_days IS NOT NULL AND schedule_time IS NOT NULL THEN 1 END) as groups_with_schedule
-      FROM Groups
+      FROM groups Groups 
     `,
       { type: sequelize.QueryTypes.SELECT }
     );
@@ -661,7 +661,7 @@ const getGroupStats = async (req, res) => {
         SUM(g.current_students) as total_students,
         ROUND(AVG(g.price), 2) as avg_price
       FROM Courses c
-      LEFT JOIN Groups g ON c.id = g.course_id
+      LEFT JOIN groups g ON c.id = g.course_id
       GROUP BY c.id, c.name
       ORDER BY group_count DESC
       LIMIT 5
@@ -676,7 +676,7 @@ const getGroupStats = async (req, res) => {
         COUNT(g.id) as group_count,
         SUM(g.current_students) as total_students
       FROM Teachers t
-      LEFT JOIN Groups g ON t.id = g.teacher_id
+      LEFT JOIN groups g ON t.id = g.teacher_id
       WHERE g.status = 'active'
       GROUP BY t.id, t.full_name
       ORDER BY group_count DESC

@@ -96,7 +96,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "Payment",
-      tableName: "Payments", // ✅ Migration bilan bir xil: "Payments"
+      tableName: "payments", // ✅ Migration bilan bir xil: "Payments"
       timestamps: true,
       underscored: false,
       defaultScope: {

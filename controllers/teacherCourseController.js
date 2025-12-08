@@ -310,7 +310,7 @@ class TeacherCourseController {
         where: {
           lesson_id: {
             [Op.in]: sequelize.literal(`(
-              SELECT id FROM lessons 
+              SELECT id FROM Lessons lessons 
               WHERE group_id = ${groupId}
             )`),
           },
@@ -1255,7 +1255,7 @@ class TeacherCourseController {
               student_id: student.id,
               lesson_id: {
                 [Op.in]: sequelize.literal(`(
-                  SELECT id FROM lessons 
+                  SELECT id FROM Lessons lessons 
                   WHERE group_id = ${groupId}
                 )`),
               },
@@ -1299,7 +1299,7 @@ class TeacherCourseController {
               student_id: student.id,
               lesson_id: {
                 [Op.in]: sequelize.literal(`(
-                  SELECT id FROM lessons 
+                  SELECT id FROM Lessons lessons 
                   WHERE group_id = ${groupId}
                 )`),
               },

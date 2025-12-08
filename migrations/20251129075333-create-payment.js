@@ -1,7 +1,7 @@
 "use strict";
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Payments", {
+    await queryInterface.createTable("payments", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -63,13 +63,13 @@ module.exports = {
     });
 
     // Index qo'shish (ixtiyoriy, lekin tavsiya etiladi)
-    await queryInterface.addIndex("Payments", ["student_id"]);
-    await queryInterface.addIndex("Payments", ["status"]);
-    await queryInterface.addIndex("Payments", ["createdAt"]);
-    await queryInterface.addIndex("Payments", ["method"]);
+    await queryInterface.addIndex("payments", ["student_id"]);
+    await queryInterface.addIndex("payments", ["status"]);
+    await queryInterface.addIndex("payments", ["createdAt"]);
+    await queryInterface.addIndex("payments", ["method"]);
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable("Payments");
+    await queryInterface.dropTable("payments");
   },
 };

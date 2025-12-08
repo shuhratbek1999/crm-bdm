@@ -3,7 +3,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("Groups", {
+    await queryInterface.createTable("groups", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -112,15 +112,15 @@ module.exports = {
     });
 
     // Add indexes for better performance
-    await queryInterface.addIndex("Groups", ["course_id"]);
-    await queryInterface.addIndex("Groups", ["teacher_id"]);
-    await queryInterface.addIndex("Groups", ["room_id"]);
-    await queryInterface.addIndex("Groups", ["status"]);
-    await queryInterface.addIndex("Groups", ["start_date"]);
-    await queryInterface.addIndex("Groups", ["end_date"]);
+    await queryInterface.addIndex("groups", ["course_id"]);
+    await queryInterface.addIndex("groups", ["teacher_id"]);
+    await queryInterface.addIndex("groups", ["room_id"]);
+    await queryInterface.addIndex("groups", ["status"]);
+    await queryInterface.addIndex("groups", ["start_date"]);
+    await queryInterface.addIndex("groups", ["end_date"]);
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("Groups");
+    await queryInterface.dropTable("groups");
   },
 };
