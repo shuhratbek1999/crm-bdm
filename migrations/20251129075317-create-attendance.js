@@ -8,7 +8,7 @@ module.exports = {
       lesson_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: "lessons", key: "id" },
+        references: { model: "Lessons", key: "id" },
         onDelete: "CASCADE",
       },
 

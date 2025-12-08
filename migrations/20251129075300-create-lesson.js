@@ -14,7 +14,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "Groups",
+          model: "groups",
           key: "id",
         },
         onUpdate: "CASCADE",
@@ -38,7 +38,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "Rooms",
+          model: "Room",
           key: "id",
         },
         onUpdate: "CASCADE",
@@ -62,14 +62,14 @@ module.exports = {
     });
 
     // Indexes for better performance
-    await queryInterface.addIndex("lessons", ["group_id"]);
-    await queryInterface.addIndex("lessons", ["teacher_id"]);
-    await queryInterface.addIndex("lessons", ["room_id"]);
-    await queryInterface.addIndex("lessons", ["date"]);
-    await queryInterface.addIndex("lessons", ["status"]);
+    await queryInterface.addIndex("Lessons", ["group_id"]);
+    await queryInterface.addIndex("Lessons", ["teacher_id"]);
+    await queryInterface.addIndex("Lessons", ["room_id"]);
+    await queryInterface.addIndex("Lessons", ["date"]);
+    await queryInterface.addIndex("Lessons", ["status"]);
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("lessons");
+    await queryInterface.dropTable("Lessons");
   },
 };
