@@ -324,7 +324,7 @@ exports.getStudentById = async (req, res) => {
             literal(`
               COALESCE(
                 (SELECT SUM(price) FROM groups 
-                 INNER JOIN group_students ON Group.id = group_students.group_id
+                 INNER JOIN group_students ON groups.id = group_students.group_id
                  WHERE group_students.student_id = Student.id), 0
               )
             `),
@@ -576,7 +576,7 @@ exports.getStudents = async (req, res) => {
             literal(`
               COALESCE(
                 (SELECT SUM(price) FROM groups 
-                 INNER JOIN group_students ON Group.id = group_students.group_id
+                 INNER JOIN group_students ON groups.id = group_students.group_id
                  WHERE group_students.student_id = Student.id), 0
               )
             `),
@@ -687,7 +687,7 @@ exports.getActiveStudents = async (req, res) => {
               ) - 
               COALESCE(
                 (SELECT SUM(groups.price) FROM groups 
-                 INNER JOIN group_students ON Group.id = group_students.group_id
+                 INNER JOIN group_students ON groups.id = group_students.group_id
                  WHERE group_students.student_id = Student.id), 0
               )
             `),
