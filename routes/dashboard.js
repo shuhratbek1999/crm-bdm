@@ -4,7 +4,7 @@ const auth = require("../middleware/auth.middleware");
 
 // Faqat admin va manager dashboardga kira oladi
 router.get("/", auth, ctrl.stats);
-// router.get("/quick", ctrl.quickStats);
+router.get("/lessons", ctrl.getSchedule);
 
 // // Oylik statistikalar
 // router.get("/monthly", ctrl.monthlyStats);

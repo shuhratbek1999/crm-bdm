@@ -7,6 +7,7 @@ const {
   Attendance,
   Lesson,
   Course,
+  Room,
 } = require("../models");
 const { Sequelize } = require("sequelize");
 const { Op } = require("sequelize");
@@ -400,6 +401,282 @@ module.exports = {
       res.status(500).json({
         success: false,
         message: "Error fetching dashboard stats",
+        error: error.message,
+      });
+    }
+  },
+  async getSchedule(req, res) {
+    try {
+      const generateTimeSlots = () => {
+        const slots = [];
+        for (let hour = 7; hour <= 18; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) {
+            // 18:30 ni o'tkazib yuborish
+            if (!(hour === 18 && minute === 30)) {
+              slots.push({
+                time: `${hour.toString().padStart(2, "0")}:${minute
+                  .toString()
+                  .padStart(2, "0")}`,
+                hour: hour,
+                minute: minute,
+                display: `${hour}:${minute === 0 ? "00" : minute}`,
+              });
+            }
+          }
+        }
+        return slots;
+      };
+      const { day_type, date } = req.query;
+
+      // Agar date berilmasa, bugungi sana
+      const targetDate = date ? new Date(date) : new Date();
+
+      // Day type aniqlash
+      let dayType = day_type;
+      if (!dayType) {
+        // Juft/toq kunni aniqlash
+        const dayOfMonth = targetDate.getDate();
+        dayType = dayOfMonth % 2 === 0 ? "even" : "odd";
+      }
+
+      // Weekday aniqlash (1-7, Dushanba-Yakshanba)
+      const dayOfWeek = targetDate.getDay(); // 0-6, Yakshanba=0
+      const weekDays = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
+      const weekdayName = weekDays[dayOfWeek];
+
+      // Group lar uchun schedule_days ni tekshirish
+      const groupsWithSchedule = await Group.findAll({
+        where: {
+          status: ["active", "planned"],
+          [Op.or]: [
+            // schedule_days da bu kun bo'lishi kerak
+            {
+              schedule_days: {
+                [Op.like]: `%"${weekdayName}"%`,
+              },
+            },
+            // Yoki schedule field bo'yicha tekshirish
+            {
+              schedule: {
+                [Op.like]: `%"day_of_week":"${weekdayName}"%`,
+              },
+            },
+          ],
+        },
+        include: [
+          {
+            model: Teacher,
+            as: "Teacher",
+            attributes: ["id", "full_name", "phone", "specialization"],
+          },
+          {
+            model: Room,
+            as: "Room",
+            attributes: ["id", "name", "capacity", "floor"],
+          },
+          {
+            model: Course,
+            as: "Course",
+            attributes: ["id", "name", "color", "icon"],
+          },
+        ],
+      });
+
+      // Agar date berilgan bo'lsa, aniq kun uchun darslarni olish
+      let lessons = [];
+
+      if (date) {
+        // Aniq sana uchun Lesson larni olish
+        lessons = await Lesson.findAll({
+          where: {
+            date: targetDate.toISOString().split("T")[0],
+          },
+          include: [
+            {
+              model: Group,
+              as: "Group",
+              include: [
+                {
+                  model: Course,
+                  as: "Course",
+                  attributes: ["id", "name", "color"],
+                },
+                {
+                  model: Teacher,
+                  as: "Teacher",
+                  attributes: ["id", "full_name"],
+                },
+                {
+                  model: Room,
+                  as: "Room",
+                  attributes: ["id", "name"],
+                },
+              ],
+            },
+          ],
+          order: [["date", "ASC"]],
+        });
+
+        // Agar aniq kun uchun dars bo'lmasa, group schedule dan generatsiya qilish
+        if (lessons.length === 0) {
+          lessons = groupsWithSchedule.map((group) => ({
+            id: null,
+            date: targetDate.toISOString().split("T")[0],
+            group_id: group.id,
+            room_id: group.room_id,
+            teacher_id: group.teacher_id,
+            status: "planned",
+            Group: group,
+            Room: group.Room,
+            Teacher: group.Teacher,
+          }));
+        }
+      } else {
+        // 7 kunlik jadval (bugundan boshlab)
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 7);
+
+        lessons = await Lesson.findAll({
+          where: {
+            date: {
+              [Op.between]: [
+                startDate.toISOString().split("T")[0],
+                endDate.toISOString().split("T")[0],
+              ],
+            },
+          },
+          include: [
+            {
+              model: Group,
+              as: "Group",
+              include: [
+                {
+                  model: Course,
+                  as: "Course",
+                  attributes: ["id", "name", "color"],
+                },
+                {
+                  model: Teacher,
+                  as: "Teacher",
+                  attributes: ["id", "full_name"],
+                },
+                {
+                  model: Room,
+                  as: "Room",
+                  attributes: ["id", "name"],
+                },
+              ],
+            },
+          ],
+          order: [
+            ["date", "ASC"],
+            ["created_at", "ASC"],
+          ],
+        });
+      }
+
+      // Jadval formatini tayyorlash
+      const schedule = lessons.map((lesson) => {
+        const group = lesson.Group || {};
+        const course = group.Course || {};
+        const teacher = group.Teacher || lesson.Teacher || {};
+        const room = group.Room || lesson.Room || {};
+
+        // Vaqtni formatlash
+        let startTime = "09:00";
+        let endTime = "10:30";
+
+        if (group.schedule_time) {
+          const timeParts = group.schedule_time.split(":");
+          const startHour = parseInt(timeParts[0]);
+          const startMinute = parseInt(timeParts[1]);
+          const duration = group.lesson_duration || 90;
+
+          const startDate = new Date();
+          startDate.setHours(startHour, startMinute, 0, 0);
+
+          const endDate = new Date(startDate.getTime() + duration * 60000);
+
+          startTime = `${startHour.toString().padStart(2, "0")}:${startMinute
+            .toString()
+            .padStart(2, "0")}`;
+          endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}`;
+        }
+
+        // Day type aniqlash
+        const lessonDate = new Date(lesson.date || targetDate);
+        const lessonDayType = lessonDate.getDate() % 2 === 0 ? "even" : "odd";
+
+        return {
+          id: lesson.id || `temp_${group.id}`,
+          room_id: room.id,
+          room_name: room.name || `Room-${group.id}`,
+          group_id: group.id,
+          group_name: group.name,
+          course_id: course.id,
+          course_name: course.name,
+          course_color: course.color || "#3B82F6",
+          teacher_id: teacher.id,
+          teacher_name: teacher.full_name || "Teacher",
+          start_time: startTime,
+          end_time: endTime,
+          date: lesson.date || targetDate.toISOString().split("T")[0],
+          day_type: lessonDayType,
+          status: lesson.status || "planned",
+          color: course.color || "",
+        };
+      });
+
+      // Xonalar ro'yxati
+      const rooms = await Room.findAll({
+        where: {
+          status: "available",
+        },
+        attributes: ["id", "name", "capacity"],
+        order: [["name", "ASC"]],
+      });
+
+      // Time slots (07:00 dan 18:00 gacha, 30 daqiqalik interval)
+      const timeSlots = generateTimeSlots();
+
+      res.json({
+        success: true,
+        day_type: dayType,
+        date: targetDate.toISOString().split("T")[0],
+        rooms: rooms.map((room) => ({
+          id: room.id,
+          name: room.name,
+          capacity: room.capacity,
+        })),
+        time_slots: timeSlots,
+        schedule: schedule,
+        groups: groupsWithSchedule.map((group) => ({
+          id: group.id,
+          name: group.name,
+          course_name: group.Course?.name,
+          teacher_name: group.Teacher?.full_name,
+          room_name: group.Room?.name,
+          schedule_days: group.schedule_days,
+          schedule_time: group.schedule_time,
+        })),
+      });
+    } catch (error) {
+      console.error("Schedule fetch error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching schedule",
         error: error.message,
       });
     }
