@@ -907,115 +907,216 @@ const checkRoomAvailabilityForGroup = async ({
   const conflicts = [];
   const startDate = new Date(start_date);
   const endDate = new Date(end_date);
-  const current = new Date(startDate);
 
-  // Day name map
-  const dayMap = {
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
+  const calculateEndTime = (startTime, duration) => {
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const totalMinutes = hours * 60 + minutes + duration;
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+    return `${endHours.toString().padStart(2, "0")}:${endMinutes
+      .toString()
+      .padStart(2, "0")}`;
   };
+  const doTimesOverlap = (start1, end1, start2, end2) => {
+    const timeToMinutes = (time) => {
+      const [h, m] = time.split(":").map(Number);
+      return h * 60 + m;
+    };
 
-  const getDayName = (dayNumber) => {
-    const days = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    return days[dayNumber];
+    const s1 = timeToMinutes(start1);
+    const e1 = timeToMinutes(end1);
+    const s2 = timeToMinutes(start2);
+    const e2 = timeToMinutes(end2);
+
+    return (
+      (s1 >= s2 && s1 < e2) ||
+      (e1 > s2 && e1 <= e2) ||
+      (s2 >= s1 && s2 < e1) ||
+      (e2 > s1 && e2 <= e1)
+    );
   };
-
-  // Check next 90 days
-  while (current <= endDate) {
-    const dayName = getDayName(current.getDay());
-
-    if (schedule_days.includes(dayName)) {
-      const dbDate = new Date(current);
-      dbDate.setHours(0, 0, 0, 0);
-
-      // Check for existing lessons in this room on this day
-      const whereClause = {
-        room_id,
-        date: dbDate,
-      };
-
-      // Exclude current group if updating
-      if (group_id) {
-        whereClause.group_id = { [Op.ne]: group_id };
-      }
-
-      const existingLesson = await Lesson.findOne({
-        where: whereClause,
-        include: [
-          {
-            model: Group,
-            as: "Group",
-            attributes: ["id", "name", "schedule_time", "lesson_duration"],
-            required: true,
+  const newStartTime = schedule_time.substring(0, 5);
+  const newEndTime = calculateEndTime(newStartTime, lesson_duration);
+  const existingGroups = await Group.findAll({
+    where: {
+      room_id,
+      status: ["active", "planned"],
+      [Op.or]: [
+        {
+          start_date: {
+            [Op.lte]: endDate, // Guruh boshlangan
           },
-        ],
-      });
+          end_date: {
+            [Op.gte]: startDate, // Guruh hali tugamagan
+          },
+        },
+        // Agar start_date/end_date bo'lmasa
+        {
+          start_date: null,
+        },
+        {
+          end_date: null,
+        },
+      ],
+    },
+    include: [
+      {
+        model: Teacher,
+        as: "Teacher",
+        attributes: ["id", "full_name"],
+      },
+    ],
+  });
 
-      if (existingLesson && existingLesson.Group) {
-        const existingGroup = existingLesson.Group;
-        const existingTime = existingGroup.schedule_time || "09:00:00";
-        const existingDuration = existingGroup.lesson_duration || 90;
-        const newTime = schedule_time.substring(0, 5);
-        const existingStartTime = existingTime.substring(0, 5);
+  console.log(`🔍 Found ${existingGroups.length} groups in room ${room_id}`);
 
-        // Calculate end times
-        const existingEndTime = calculateEndTime(
-          existingStartTime,
-          existingDuration
-        );
-        const newEndTime = calculateEndTime(newTime, lesson_duration);
+  // Har bir mavjud guruhni tekshirish
+  existingGroups.forEach((group) => {
+    // Agar group_id berilgan bo'lsa (update), o'zini o'tkazib yuborish
+    if (group_id && group.id === group_id) {
+      return;
+    }
 
-        // Check if times overlap
+    const groupScheduleDays = group.schedule_days || [];
+    const groupScheduleTime = group.schedule_time || "09:00:00";
+    const groupLessonDuration = group.lesson_duration || 90;
+
+    const groupStartTime = groupScheduleTime.substring(0, 5);
+    const groupEndTime = calculateEndTime(groupStartTime, groupLessonDuration);
+
+    // Hafta kunlarini tekshirish
+    schedule_days.forEach((day) => {
+      if (groupScheduleDays.includes(day)) {
+        // Vaqtlarni tekshirish
         if (
-          doTimesOverlap(
-            newTime,
-            newEndTime,
-            existingStartTime,
-            existingEndTime
-          )
+          doTimesOverlap(newStartTime, newEndTime, groupStartTime, groupEndTime)
         ) {
           conflicts.push({
-            date: current.toISOString().split("T")[0],
-            day: dayName,
-            conflict_type: "room_time",
-            message: `Room is already occupied by group "${existingGroup.name}" at ${existingStartTime}-${existingEndTime} on ${dayName}`,
+            date: day,
+            day: day,
+            conflict_type: "room_schedule",
+            message: `Xona band! "${group.name}" guruhi bilan vaqt kesishmasi`,
             existing_group: {
-              id: existingGroup.id,
-              name: existingGroup.name,
-              time: `${existingStartTime}-${existingEndTime}`,
+              id: group.id,
+              name: group.name,
+              teacher: group.Teacher?.full_name || "Noma'lum",
+              time: `${groupStartTime}-${groupEndTime}`,
+              days: groupScheduleDays,
             },
+            requested: {
+              time: `${newStartTime}-${newEndTime}`,
+              days: schedule_days,
+            },
+            suggestion: "Boshqa vaqt yoki xona tanlang",
           });
         }
       }
-    }
+    });
+  });
 
-    current.setDate(current.getDate() + 1);
+  // 2. LESSON LAR ORQALI TEKSHIRISH (agar mavjud bo'lsa)
+  try {
+    const existingLessons = await Lesson.findAll({
+      where: {
+        room_id,
+        date: {
+          [Op.between]: [
+            startDate.toISOString().split("T")[0],
+            endDate.toISOString().split("T")[0],
+          ],
+        },
+      },
+      include: [
+        {
+          model: Group,
+          as: "Group",
+          attributes: ["id", "name", "schedule_days"],
+          required: true,
+        },
+      ],
+    });
+
+    console.log(
+      `📚 Found ${existingLessons.length} lessons in room ${room_id}`
+    );
+
+    // Har bir lesson ni tekshirish
+    existingLessons.forEach((lesson) => {
+      const lessonDate = new Date(lesson.date);
+      const dayNames = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
+      const lessonDay = dayNames[lessonDate.getDay()];
+
+      // Agar bu kun schedule_days da bo'lsa
+      if (schedule_days.includes(lessonDay)) {
+        // Vaqtni hisoblash (agar Group ma'lumotlari bo'lsa)
+        const group = lesson.Group;
+        if (group) {
+          const groupScheduleTime = "09:00:00"; // Default
+          const groupLessonDuration = 90; // Default
+
+          const groupStartTime = groupScheduleTime.substring(0, 5);
+          const groupEndTime = calculateEndTime(
+            groupStartTime,
+            groupLessonDuration
+          );
+
+          if (
+            doTimesOverlap(
+              newStartTime,
+              newEndTime,
+              groupStartTime,
+              groupEndTime
+            )
+          ) {
+            conflicts.push({
+              date: lesson.date,
+              day: lessonDay,
+              conflict_type: "existing_lesson",
+              message: `Bu kunda dars mavjud: "${group.name}" guruhi`,
+              existing_group: {
+                id: group.id,
+                name: group.name,
+              },
+              requested: {
+                time: `${newStartTime}-${newEndTime}`,
+                day: lessonDay,
+              },
+            });
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.log("⚠️ Lessons check skipped:", error.message);
+    // Agar Lesson jadvali yo'q bo'lsa, xato bermaslik
   }
+
+  console.log(`⚠️ Found ${conflicts.length} conflicts for room ${room_id}`);
 
   return {
     conflicts,
     isAvailable: conflicts.length === 0,
     checked_days: schedule_days,
-    checked_period: `${start_date} to ${end_date}`,
+    checked_period: `${startDate.toISOString().split("T")[0]} to ${
+      endDate.toISOString().split("T")[0]
+    }`,
+    details: {
+      room_id,
+      new_schedule: `${newStartTime}-${newEndTime} (${lesson_duration} min)`,
+      days: schedule_days,
+      conflict_count: conflicts.length,
+    },
   };
 };
 
-/**
- * Check teacher availability for group schedule
- */
 const checkTeacherAvailabilityForGroup = async ({
   teacher_id,
   schedule_days,
@@ -1291,7 +1392,6 @@ const createGroup = async (req, res) => {
       });
     }
 
-    // ========== ROOM AVAILABILITY CHECK ==========
     if (room_id) {
       const roomAvailability = await checkRoomAvailabilityForGroup({
         room_id,
@@ -1306,7 +1406,7 @@ const createGroup = async (req, res) => {
         await transaction.rollback();
         return res.status(409).json({
           success: false,
-          message: "Room has conflicting schedule with existing lessons",
+          message: "Bu xona band boshqa xona tanlang",
           conflicts: roomAvailability.conflicts,
           suggestion: "Please choose different room, schedule days, or time",
         });
