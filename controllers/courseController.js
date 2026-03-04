@@ -58,15 +58,15 @@ const getAllCourses = async (req, res) => {
       ],
       // MySQL uchun to'g'ri SQL syntax
       attributes: {
-        include: [
-          [
-            sequelize.literal(
-              `(SELECT COUNT(*) FROM groups Groups WHERE Groups.course_id = Course.id AND Groups.status = 'active')`
-            ),
-            "active_groups_count",
+          include: [
+            [
+              sequelize.literal(
+                `(SELECT COUNT(*) FROM \`groups\` Groups WHERE Groups.course_id = Course.id AND Groups.status = 'active')`
+              ),
+              "active_groups_count",
+            ],
           ],
-        ],
-      },
+        },
       order: [["created_at", "DESC"]],
       limit: parseInt(limit),
       offset: parseInt(offset),

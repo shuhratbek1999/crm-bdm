@@ -1,6 +1,6 @@
 // controllers/roomController.js
 const { Room, Group } = require("../models");
-const { Op, fn, literal } = require("sequelize");
+const { Op, fn, literal,col } = require("sequelize");
 
 const getAllRooms = async (req, res) => {
   try {
@@ -55,11 +55,12 @@ const getAllRooms = async (req, res) => {
         },
       ],
       // MySQL uchun to'g'ri SQL syntax
-      attributes: {
+     attributes: {
         include: [
           [
+            // "groups" so'zi backtick ichiga olindi: `groups`
             literal(
-              `(SELECT COUNT(*) FROM groups Groups WHERE Groups.room_id = Room.id AND Groups.status = 'active')`
+              `(SELECT COUNT(*) FROM \`groups\` Groups WHERE Groups.room_id = Room.id AND Groups.status = 'active')`
             ),
             "active_groups_count",
           ],

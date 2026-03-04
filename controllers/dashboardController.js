@@ -211,31 +211,31 @@ module.exports = {
           : 0;
 
       // 13. Mashhur kurslar (Group orqali)
-      const popularCourses = await Course.findAll({
-        attributes: [
-          "id",
-          "name",
-          [
-            Sequelize.literal(`
-            (SELECT COUNT(DISTINCT gs.student_id) 
-             FROM groups g
-             LEFT JOIN group_students gs ON g.id = gs.group_id
-             WHERE g.course_id = Course.id AND g.status = 'active')
-          `),
-            "enrollment",
-          ],
-          [
-            Sequelize.literal(`
-            (SELECT COUNT(DISTINCT g.id) 
-             FROM groups g
-             WHERE g.course_id = Course.id AND g.status = 'active')
-          `),
-            "active_groups",
-          ],
-        ],
-        order: [[Sequelize.literal("enrollment"), "DESC"]],
-        limit: 5,
-      });
+const popularCourses = await Course.findAll({
+  attributes: [
+    "id",
+    "name",
+    [
+      Sequelize.literal(`
+        (SELECT COUNT(DISTINCT gs.student_id) 
+         FROM \`group_students\` AS gs
+         INNER JOIN \`groups\` AS g ON g.id = gs.group_id
+         WHERE g.course_id = Course.id AND g.status = 'active')
+      `),
+      "enrollment",
+    ],
+    [
+      Sequelize.literal(`
+        (SELECT COUNT(DISTINCT g.id) 
+         FROM \`groups\` AS g
+         WHERE g.course_id = Course.id AND g.status = 'active')
+      `),
+      "active_groups",
+    ],
+  ],
+  order: [[Sequelize.literal("enrollment"), "DESC"]],
+  limit: 5,
+});
 
       const popularCoursesFormatted = popularCourses.map((course) => ({
         id: course.id,
